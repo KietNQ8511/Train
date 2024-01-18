@@ -1,0 +1,174 @@
+
+The Android Init Language consists of five broad classes of statements: Actions, Commands, Services, Options, and Imports.
+
+System properties can be expanded using the syntax ${property.name}. This also works in contexts where concatenation is required, such as import /init.recovery.${ro.hardware}.rc
+
+Actions and Services implicitly declare a new section. All commands or options belong to the section most recently declared. Commands or options before the first section are ignored.
+
+Services have unique names. If a second Service is defined with the same name as an existing one, it is ignored and an error message is logged.
+
+Init .rc Files
+The init language is used in plain text files that take the .rc file extension. there are typically multiple of these in multiple locactions on the system, described below.
+
+/system/etc/init/hw/init.rc is the primary .rc file and is loaded by the init executable at the beginning of its execution. It is responsible for the initial set up of the system.
+
+Init loads all of the files contained within the /{system,system_ext,vendor,odm,product}/etc/init/ directories immediately after loading the primary /system/etc/init/hw/init.rc. This is explained in more details in the Imports section of this file.
+
+Legacy devices without the first stage mount mechanism previously were able to import init scripts during mount_all, however that is deprecated and not allowed for devices launching after Q.
+The intention of these directories is:
+1. /system/etc/init/ is for core system items such as SurfaceFlinger, MediaService, and logd.
+2. /vendor/etc/init/ is for SoC vendor items such as actions or daemons needed for core SoC functionality.
+3. /odm/etc/init/ is for device manufacturer items such as actions or daemons needed for motion sensor or other peripheral functionality.
+
+All services whose binaries reside on the system, vendor, or odm partitions should have their service entries placed into a corresponding init .rc file, located in the /etc/init/ directory of the partition where they reside. There is a build system macro, LOCAL_INIT_RC, that handles this for developers. Each init .rc file should additionally contain any actions associated with its service.
+
+
+Actions
+
+Actions are named sequences of commands. Actions have a trigger which is used to determine when the action is executed. When an event occurs which matches an action's trigger, that action is added to the tail of a to-be-executed queue (unless it is already on the queue).r
+
+Each action in the queue is dequeued in sequence and each command in that action is executed in sequence. 
+Init handles other activities (device creation/destruction, property setting, process restarting) “between” the execution of the commands in activities.
+
+Actions take the form of: 
+on <trigger> [&& <trigger>]*
+   <command>
+   <command>
+   <command>
+
+action are added to the queue and exeuted based on the order that the file that contains them was parsed (see the Imports section), 
+then sequentially within an individual file.
+
+For example if a file contains:
+on boot
+   setprop a 1
+   setprop b 2
+
+on boot && property:true=true
+   setprop c 1
+   setprop d 2
+
+on boot
+   setprop e 1
+   setprop f 2
+   
+If the property true wasn't true when the boot was triggered, then the order of the commands executed will be:
+setprop a 1
+setprop b 2
+setprop e 1
+setprop f 2
+
+else 
+
+setprop a 1
+setprop b 2
+setprop c 1
+setprop d 2
+setprop e 1
+setprop f 2
+
+
+
+Services
+Services are programs which init launches and (optionally) restarts when they exit. Services take the form of:
+service <name> <pathname> [ <argument> ]*
+   <option>
+   <option>
+   ...
+
+Options
+Options are modifiers to services. They affect how and when init runs the service.
+
+class : specifes the Java class that implements the service
+class com.example.MyService
+
+user: degines te user context in which the service runs.
+This option defines the user context in which the service runs. It allows specifying the user ID or name under which the service process should be executed.
+
+user system
+
+group: set the group ownership of the service process
+This option sets the group ownership of the service process. It determines the group ID or name associated with the service.
+group system
+
+critical: marks the service as critical, meaning that the system will wait for it to start befre proceeding with other service.
+"critical": When a service is marked as critical, the system will wait for it to start before proceeding with other services. This is useful for services that are essential for the proper functioning of the system.
+critical
+
+oneshot: Indicates that the service as critical, meaning that the system will wait for it to start before proceeding with other services.
+"oneshot": This option indicates that the service should be started only once during the boot process. It prevents the service from being restarted if it crashes or stops
+oneshot
+
+disabled: disable the service, preventing it from being started automatically during boot
+"disabled": When a service is disabled, it is prevented from being started automatically during boot. This is useful for services that are not required or should be manually started.
+
+onrestart: Specifies a command or action to be executed when the service is restarted.
+"onrestart": This option specifies a command or action to be executed when the service is restarted. It allows defining additional actions to be performed when the service is restarted.
+
+seclabel: Sets the SELinux security context label for the service.
+"seclabel": This option sets the SELinux security context label for the service. It defines the security policy that applies to the service process.
+
+priority: Defines the priority level of the service, determining its order of execution during the boot process.
+"priority": The priority option defines the priority level of the service, determining its order of execution during the boot process. Lower priority values indicate higher priority.
+
+socket: Specifies a Unix domain socket that the service should listen on.
+"socket": This option specifies a Unix domain socket that the service should listen on. It allows communication between the service and other processes through the socket.
+socket my_socket stream 0666 root system
+
+writepid: Writes the process ID (PID) of the service to a file.
+"writepid": When this option is used, the process ID (PID) of the service is written to a file. This can be useful for monitoring or managing the service process.
+writepid /data/local/tmp/myservice.pid
+
+group: Sets the supplementary group IDs for the service process.
+"group": This option sets the supplementary group IDs for the service process. It allows specifying additional groups that the service process should belong to.
+group audio camera
+
+
+
+"class": Specifies the Java class that implements the service.
+
+"user": Defines the user context in which the service runs.
+
+"group": Sets the group ownership of the service process.
+
+"critical": Marks the service as critical, meaning that the system will wait for it to start before proceeding with other services.
+
+"oneshot": Indicates that the service should be started only once during the boot process.
+
+"disabled": Disables the service, preventing it from being started automatically during boot.
+
+"onrestart": Specifies a command or action to be executed when the service is restarted.
+
+"seclabel": Sets the SELinux security context label for the service.
+
+"priority": Defines the priority level of the service, determining its order of execution during the boot process.
+
+"socket": Specifies a Unix domain socket that the service should listen on.
+
+"writepid": Writes the process ID (PID) of the service to a file.
+
+"group": Sets the supplementary group IDs for the service process.
+
+
+These options can be used in combination to configure and modify the behavior of services in the Android init language.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
