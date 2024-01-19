@@ -1,0 +1,27 @@
+Usage
+
+Mở terminal hoặc command prompt trên máy tính của bạn.
+
+Kết nối với thiết bị Android của bạn bằng cách sử dụng adb (Android Debug Bridge). Sử dụng lệnh sau: adb connect 192.168.0.1 (thay đổi địa chỉ IP thành địa chỉ IP của thiết bị Android của bạn).
+
+Sử dụng adb shell để truy cập vào thiết bị Android của bạn. Sử dụng lệnh sau: adb shell
+
+Di chuyển đến thư mục chứa tệp tin init.rc hoặc init.d trên thiết bị Android của bạn. Sử dụng lệnh sau: cd /system/core/rootdir
+
+Sử dụng trình chỉnh sửa văn bản như vi hoặc nano để tạo hoặc chỉnh sửa tệp tin init.rc hoặc init.d tương ứng. Ví dụ: vi init.rc
+
+Thêm các dòng sau vào tệp tin init.rc:
+
+
+service myservice /system/bin/myservice
+    class com.example.MyService
+    socket my_socket stream 0666 root system
+
+Lưu và thoát khỏi trình chỉnh sửa văn bản.
+
+Sử dụng lệnh chmod để cấp quyền thực thi cho tệp tin init.rc hoặc init.d. Sử dụng lệnh sau: chmod 755 init.rc
+
+Khởi động lại thiết bị Android của bạn để áp dụng các thay đổi. Sử dụng lệnh sau: reboot
+
+
+Lưu ý rằng việc áp dụng ngôn ngữ init của Android bằng command line yêu cầu quyền root trên thiết bị Android của bạn. Bạn cần đảm bảo rằng thiết bị đã được root hoặc bạn có quyền root để thực hiện các thay đổi này.
